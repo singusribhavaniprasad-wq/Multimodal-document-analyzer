@@ -145,15 +145,16 @@ class DocIntelViewModel(private val repository: DocRepository) : ViewModel() {
                 val step = steps[i]
                 _engineStatus.value = EngineStatus.Simulating(i, currentMs, accumulatedLogs)
                 
-                // Simulate running pulse duration
+                // Simulate running pulse duration with optimized tick rate to avoid UI thread lag
                 var elapsedInStep = 0L
                 val isTest = System.getProperty("org.robolectric.active") != null || 
                              System.getProperty("java.class.path")?.contains("junit") == true
                 val stepDuration = if (isTest) 0L else 800L // speed run simulation, bypass in test
                 while (elapsedInStep < stepDuration) {
-                    delay(100)
-                    elapsedInStep += 100
-                    currentMs += 100
+                    val tick = 400L
+                    delay(tick)
+                    elapsedInStep += tick
+                    currentMs += tick
                     _engineStatus.value = EngineStatus.Simulating(i, currentMs, accumulatedLogs)
                 }
 
@@ -161,13 +162,10 @@ class DocIntelViewModel(private val repository: DocRepository) : ViewModel() {
                 currentMs += step.durationMs
             }
 
-            // Finish
-            _engineStatus.value = EngineStatus.Completed
-            // Pre-calculate randomized positions for custom knowledge graph rendering if they are not scaled yet
+            // Finish - Ensure state consistency and avoid unsafe redundant writes on presets
             val positionedDoc = precomputeGraphLayout(targetDoc)
             _currentAnalysis.value = positionedDoc
-            // Save to database of history if it is a new preset to populate lists beautifully
-            repository.saveAnalysis(positionedDoc)
+            _engineStatus.value = EngineStatus.Completed
         }
     }
 

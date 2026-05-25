@@ -176,10 +176,10 @@ fun DocIntelDashboard(
                             )
                         }
                         is EngineStatus.Completed -> {
-                            if (currentDoc != null) {
+                            currentDoc?.let { doc ->
                                 // Master intelligence Dashboard
                                 MainIntelDashboard(
-                                    doc = currentDoc!!,
+                                    doc = doc,
                                     viewModel = viewModel,
                                     accentColor = activeAccentColor,
                                     imagePickerLauncher = { imagePickerLauncher.launch("image/*") }
@@ -609,13 +609,13 @@ fun SimulatingPipelineView(
                 .background(Color(0xFF040509), RoundedCornerShape(12.dp))
                 .padding(16.dp)
         ) {
-            val lines = remember(status.logs) { status.logs.split("\n") }
+            val lines = remember(status.logs) { status.logs.split("\n").reversed() }
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 reverseLayout = true
             ) {
                 // Render text starting from bottom of terminal
-                items(lines.asReversed()) { line ->
+                items(lines) { line ->
                     if (line.isNotBlank()) {
                         Text(
                             text = line,
@@ -942,7 +942,7 @@ fun MainIntelDashboard(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(200.dp)
+                        .wrapContentHeight()
                         .clip(RoundedCornerShape(24.dp))
                         .background(Color(0xFF0A0C10))
                         .border(1.5.dp, ObsidianBorder, RoundedCornerShape(24.dp))
@@ -956,48 +956,51 @@ fun MainIntelDashboard(
                         }
                         .padding(14.dp)
                 ) {
-                    // Actual OCR scrolling content
-                    Box(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-                        Column {
-                            val paragraphs = doc.fullOcrText.split("\n\n")
-                            paragraphs.forEachIndexed { idx, para ->
-                                val isCriticalRiskSnippet = doc.risks.any { risk ->
-                                    para.contains(risk.title) || para.contains("Paragraph 18") || para.contains("SECTION 8") || para.contains("FIGURE 4")
-                                }
+                    Column {
+                        val paragraphs = doc.fullOcrText.split("\n\n")
+                        paragraphs.forEachIndexed { idx, para ->
+                            val isCriticalRiskSnippet = doc.risks.any { risk ->
+                                para.contains(risk.title) || para.contains("Paragraph 18") || para.contains("SECTION 8") || para.contains("FIGURE 4")
+                            }
 
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 4.dp)
-                                        .drawBehind {
-                                            if (heatmapOn) {
-                                                drawRect(
-                                                    color = accentColor.copy(alpha = 0.08f),
-                                                    size = size
-                                                )
-                                            }
-                                            if (risksOn && isCriticalRiskSnippet) {
-                                                drawRect(
-                                                    color = LaserPink.copy(alpha = 0.12f),
-                                                    size = size
-                                                )
-                                            }
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp)
+                                    .drawBehind {
+                                        if (heatmapOn) {
+                                            drawRect(
+                                                color = accentColor.copy(alpha = 0.08f),
+                                                size = size
+                                            )
                                         }
-                                        .border(
-                                            width = if (risksOn && isCriticalRiskSnippet) 1.dp else 0.dp,
-                                            color = if (risksOn && isCriticalRiskSnippet) LaserPink.copy(alpha = 0.5f) else Color.Transparent,
-                                            shape = RoundedCornerShape(4.dp)
-                                        )
-                                        .padding(8.dp)
-                                ) {
-                                    Text(
-                                        para,
-                                        fontSize = 11.sp,
-                                        color = if (risksOn && isCriticalRiskSnippet) TextPrimary else TextSecondary,
-                                        fontFamily = FontFamily.SansSerif,
-                                        lineHeight = 16.sp
+                                        if (risksOn && isCriticalRiskSnippet) {
+                                            drawRect(
+                                                color = LaserPink.copy(alpha = 0.12f),
+                                                size = size
+                                            )
+                                        }
+                                    }
+                                    .then(
+                                        if (risksOn && isCriticalRiskSnippet) {
+                                            Modifier.border(
+                                                width = 1.dp,
+                                                color = LaserPink.copy(alpha = 0.5f),
+                                                shape = RoundedCornerShape(4.dp)
+                                            )
+                                        } else {
+                                            Modifier
+                                        }
                                     )
-                                }
+                                    .padding(8.dp)
+                            ) {
+                                Text(
+                                    para,
+                                    fontSize = 11.sp,
+                                    color = if (risksOn && isCriticalRiskSnippet) TextPrimary else TextSecondary,
+                                    fontFamily = FontFamily.SansSerif,
+                                    lineHeight = 16.sp
+                                )
                             }
                         }
                     }
@@ -1477,26 +1480,36 @@ fun InteractiveNodeCanvas(
         label = "radar"
     )
 
+    val dashPathEffect = remember {
+        PathEffect.dashPathEffect(floatArrayOf(15f, 10f), 0f)
+    }
+
     Canvas(
         modifier = Modifier
             .fillMaxSize()
             .pointerInput(nodes) {
                 detectTapGestures { offset ->
-                    val canvasWidth = size.width
-                    val canvasHeight = size.height
-                    val hitRadius = 32.dp.toPx()
-                    var hit: GraphNode? = null
-                    for (node in nodes) {
-                        val nx = node.x * canvasWidth
-                        val ny = node.y * canvasHeight
-                        val dx = nx - offset.x
-                        val dy = ny - offset.y
-                        if (Math.sqrt((dx * dx + dy * dy).toDouble()) < hitRadius) {
-                            hit = node
-                            break
+                    try {
+                        val canvasWidth = size.width
+                        val canvasHeight = size.height
+                        if (canvasWidth > 0 && canvasHeight > 0) {
+                            val hitRadius = 32.dp.toPx()
+                            var hit: GraphNode? = null
+                            for (node in nodes) {
+                                val nx = node.x * canvasWidth
+                                val ny = node.y * canvasHeight
+                                val dx = nx - offset.x
+                                val dy = ny - offset.y
+                                if (Math.sqrt((dx * dx + dy * dy).toDouble()) < hitRadius) {
+                                    hit = node
+                                    break
+                                }
+                            }
+                            onNodeSelected(hit)
                         }
+                    } catch (t: Throwable) {
+                        // Safe fail-silent to prevent UI main-thread crashes on touch delivery
                     }
-                    onNodeSelected(hit)
                 }
             }
     ) {
@@ -1513,7 +1526,7 @@ fun InteractiveNodeCanvas(
                     start = Offset(from.x * w, from.y * h),
                     end = Offset(to.x * w, to.y * h),
                     strokeWidth = 1.5.dp.toPx(),
-                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(15f, 10f), 0f)
+                    pathEffect = dashPathEffect
                 )
             }
         }
