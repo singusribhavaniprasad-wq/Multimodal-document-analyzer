@@ -37,4 +37,10 @@ class ExampleRobolectricTest {
     viewModel.loadPresetDocument(DocType.LEGAL)
     assert(viewModel.engineStatus.value is EngineStatus.Simulating)
   }
+
+  @Test
+  fun `test mainActivity launches cleanly`() {
+    val controller = org.robolectric.Robolectric.buildActivity(MainActivity::class.java).setup()
+    assert(controller.get() != null)
+  }
 }

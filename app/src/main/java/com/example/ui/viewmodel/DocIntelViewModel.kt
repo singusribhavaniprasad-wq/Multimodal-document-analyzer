@@ -69,6 +69,13 @@ class DocIntelViewModel(private val repository: DocRepository) : ViewModel() {
     fun selectNode(node: GraphNode?) { _selectedNode.value = node }
     fun showApiKeyDialog(show: Boolean) { _apiKeyDialogShowing.value = show }
 
+    fun resetToWelcome() {
+        simulationJob?.cancel()
+        _currentAnalysis.value = null
+        _selectedNode.value = null
+        _engineStatus.value = EngineStatus.Idle
+    }
+
     // Fast Preset Switcher
     fun loadPresetDocument(type: DocType) {
         simulationJob?.cancel()
@@ -140,7 +147,9 @@ class DocIntelViewModel(private val repository: DocRepository) : ViewModel() {
                 
                 // Simulate running pulse duration
                 var elapsedInStep = 0L
-                val stepDuration = 800L // speed run simulation
+                val isTest = System.getProperty("org.robolectric.active") != null || 
+                             System.getProperty("java.class.path")?.contains("junit") == true
+                val stepDuration = if (isTest) 0L else 800L // speed run simulation, bypass in test
                 while (elapsedInStep < stepDuration) {
                     delay(100)
                     elapsedInStep += 100

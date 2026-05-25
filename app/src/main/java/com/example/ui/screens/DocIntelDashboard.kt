@@ -77,7 +77,7 @@ fun DocIntelDashboard(
             if (height > reqHeight || width > reqWidth) {
                 val halfHeight = height / 2
                 val halfWidth = width / 2
-                while (halfHeight / inSampleSize >= reqHeight && halfWidth / inSampleSize >= reqWidth) {
+                while (halfHeight / inSampleSize >= reqHeight || halfWidth / inSampleSize >= reqWidth) {
                     inSampleSize *= 2
                 }
             }
@@ -159,7 +159,13 @@ fun DocIntelDashboard(
                     when (val status = engineStatus) {
                         is EngineStatus.Idle -> {
                             // Ready state before selection
-                            WelcomeScreen(onSelectPreset = { viewModel.loadPresetDocument(it) })
+                            WelcomeScreen(
+                                history = history,
+                                onSelectPreset = { viewModel.loadPresetDocument(it) },
+                                onSelectHistory = { viewModel.loadHistoricalRecord(it) },
+                                onDeleteHistory = { viewModel.deleteHistoryRecord(it) },
+                                onClearHistory = { viewModel.clearAllHistory() }
+                            )
                         }
                         is EngineStatus.Simulating -> {
                             // High immersion Agent Sequence terminal
@@ -182,7 +188,13 @@ fun DocIntelDashboard(
                         }
                         is EngineStatus.Error -> {
                             // Show standard fallback
-                            WelcomeScreen(onSelectPreset = { viewModel.loadPresetDocument(it) })
+                            WelcomeScreen(
+                                history = history,
+                                onSelectPreset = { viewModel.loadPresetDocument(it) },
+                                onSelectHistory = { viewModel.loadHistoricalRecord(it) },
+                                onDeleteHistory = { viewModel.deleteHistoryRecord(it) },
+                                onClearHistory = { viewModel.clearAllHistory() }
+                            )
                         }
                     }
                 }
@@ -191,7 +203,8 @@ fun DocIntelDashboard(
                 BottomNavigationDeck(
                     currentDoc = currentDoc,
                     onSelectPreset = { viewModel.loadPresetDocument(it) },
-                    onUploadClick = { imagePickerLauncher.launch("image/*") }
+                    onUploadClick = { imagePickerLauncher.launch("image/*") },
+                    onHomeClick = { viewModel.resetToWelcome() }
                 )
             }
 
@@ -277,7 +290,11 @@ fun HeaderPanel(
 
 @Composable
 fun WelcomeScreen(
-    onSelectPreset: (DocType) -> Unit
+    history: List<DocAnalysis>,
+    onSelectPreset: (DocType) -> Unit,
+    onSelectHistory: (DocAnalysis) -> Unit,
+    onDeleteHistory: (Long) -> Unit,
+    onClearHistory: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -336,6 +353,114 @@ fun WelcomeScreen(
             color = CosmicPurple,
             onClick = { onSelectPreset(DocType.ACADEMIC) }
         )
+
+        // Historical archive section
+        if (history.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(32.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "SECURE COGNITIVE ARCHIVE",
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 11.sp,
+                    color = CosmicPurple
+                )
+                Text(
+                    "CLEAR ALL",
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 11.sp,
+                    color = LaserPink,
+                    modifier = Modifier.clickable(onClick = onClearHistory)
+                )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            history.forEach { item ->
+                HistoryRecordCard(
+                    doc = item,
+                    onClick = { onSelectHistory(item) },
+                    onDelete = { onDeleteHistory(item.id) }
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+            }
+        }
+    }
+}
+
+@Composable
+fun HistoryRecordCard(
+    doc: DocAnalysis,
+    onClick: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val accentColor = when (doc.docType) {
+        DocType.LEGAL -> WarmBronze
+        DocType.HEALTHCARE -> ElectricCyan
+        DocType.ACADEMIC -> CosmicPurple
+        DocType.FINANCIAL -> BrightMint
+        DocType.GENERAL -> LaserPink
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, ObsidianBorder, RoundedCornerShape(16.dp))
+            .background(ObsidianSurface, RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick)
+            .padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .background(accentColor.copy(alpha = 0.12f), RoundedCornerShape(10.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = when (doc.docType) {
+                    DocType.LEGAL -> Icons.Default.Lock
+                    DocType.HEALTHCARE -> Icons.Default.Favorite
+                    DocType.ACADEMIC -> Icons.Default.Star
+                    DocType.FINANCIAL -> Icons.Default.Check
+                    DocType.GENERAL -> Icons.Default.Info
+                },
+                contentDescription = null,
+                tint = accentColor,
+                modifier = Modifier.size(16.dp)
+            )
+        }
+        Spacer(modifier = Modifier.width(14.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = doc.title.uppercase(Locale.ROOT),
+                fontWeight = FontWeight.Bold,
+                fontSize = 13.sp,
+                color = TextPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = "${doc.docType.name} • CONFIDENCE: ${(doc.confidenceScore * 100).toInt()}%",
+                fontSize = 10.sp,
+                fontFamily = FontFamily.Monospace,
+                color = TextSecondary
+            )
+        }
+        IconButton(
+            onClick = onDelete,
+            modifier = Modifier.size(32.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Delete,
+                contentDescription = "Delete Record",
+                tint = LaserPink.copy(alpha = 0.6f),
+                modifier = Modifier.size(16.dp)
+            )
+        }
     }
 }
 
@@ -1445,7 +1570,8 @@ fun InteractiveNodeCanvas(
 fun BottomNavigationDeck(
     currentDoc: DocAnalysis?,
     onSelectPreset: (DocType) -> Unit,
-    onUploadClick: () -> Unit
+    onUploadClick: () -> Unit,
+    onHomeClick: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -1481,6 +1607,14 @@ fun BottomNavigationDeck(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            item {
+                IconButtonCard(
+                    text = "HUB INDEX",
+                    icon = Icons.Default.Home,
+                    color = CosmicPurple,
+                    onClick = onHomeClick
+                )
+            }
             item {
                 IconButtonCard(
                     text = "RE-UPLOAD",
@@ -1573,19 +1707,19 @@ fun IconButtonCard(
     Row(
         modifier = Modifier
             .border(1.dp, ObsidianBorder, RoundedCornerShape(8.dp))
-            .background(CosmicPurple.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+            .background(color.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(12.dp), tint = CosmicPurple)
+        Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(12.dp), tint = color)
         Spacer(modifier = Modifier.width(6.dp))
         Text(
             text,
             fontSize = 10.sp,
             fontFamily = FontFamily.Monospace,
             fontWeight = FontWeight.Bold,
-            color = CosmicPurple
+            color = color
         )
     }
 }
