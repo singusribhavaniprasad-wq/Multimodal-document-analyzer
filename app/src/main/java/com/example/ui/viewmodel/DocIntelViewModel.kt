@@ -174,6 +174,7 @@ class DocIntelViewModel(private val repository: DocRepository) : ViewModel() {
     // Maps graph coordinates elegantly to Canvas Space
     private fun precomputeGraphLayout(doc: DocAnalysis): DocAnalysis {
         val count = doc.nodes.size
+        if (count <= 0) return doc
         val positionedNodes = doc.nodes.mapIndexed { idx, node ->
             // Use deterministic grid orbits if coordinates are default
             if (node.x == 0f && node.y == 0f) {
