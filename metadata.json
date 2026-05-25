@@ -1,0 +1,6 @@
+{
+  "name": "Cognitive Doc AI",
+  "description": "An advanced, futuristic AI-powered document intelligence system featuring collaborative agents, visual overlays, interactive knowledge graphs, and expert-mode reasoning.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
