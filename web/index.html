@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cognitive Doc AI - Intelligent Multi-Agent Document OS</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind Configuration -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        obsidian: {
+                            main: '#030407',
+                            surface: '#0B0D13',
+                            border: '#1E2235',
+                        },
+                        bento: {
+                            blueBg: '#E3F2FD',
+                            blueText: '#0D47A1',
+                            redText: '#FF1744',
+                        },
+                        accent: {
+                            bronze: '#CD7F32',
+                            cyan: '#00F0FF',
+                            purple: '#BD00FF',
+                            mint: '#00FF87',
+                            pink: '#FF007F'
+                        }
+                    },
+                    fontFamily: {
+                        mono: ['JetBrains Mono', 'Fira Code', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons for vector symbols -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap');
+        
+        body {
+            background-color: #030407;
+            font-family: 'Space Grotesk', system-ui, sans-serif;
+            color: #E2E8F0;
+        }
+
+        .hud-border {
+            border: 1px solid #1E2235;
+        }
+
+        /* Ambient glowing background */
+        .ambient-glow {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 75vw;
+            height: 75vh;
+            background: radial-gradient(circle, rgba(189, 0, 255, 0.05) 0%, rgba(3, 4, 7, 0) 70%);
+            z-index: 0;
+            pointer-events: none;
+            transition: background 1.2s ease-in-out;
+        }
+
+        /* Scanline animation overlay */
+        .scanline {
+            background: linear-gradient(
+                to bottom,
+                rgba(255,255,255,0),
+                rgba(255,255,255,0) 50%,
+                rgba(0, 240, 255, 0.04) 50%,
+                rgba(0, 240, 255, 0.04)
+            );
+            background-size: 100% 4px;
+            animation: move-scan 12s linear infinite;
+        }
+
+        @keyframes move-scan {
+            0% { background-position: 0 0; }
+            100% { background-position: 0 100%; }
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #030407;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1E2235;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3B82F6;
+        }
+    </style>
+</head>
+<body class="relative min-h-screen overflow-x-hidden flex flex-col">
+    <!-- Ambient Radial Glow -->
+    <div id="ambientGlow" class="ambient-glow"></div>
+
+    <!-- HUD Line Header -->
+    <header class="w-full border-b border-obsidian-border bg-obsidian-main/70 backdrop-blur-md z-10 sticky top-0 px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-accent-purple to-accent-cyan flex items-center justify-center shadow-lg shadow-accent-purple/20">
+                <i data-lucide="cpu" class="w-5 h-5 text-white animate-pulse"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold tracking-wider text-white flex items-center gap-2">
+                    COGNITIVE DOC AI <span class="text-xs font-mono bg-accent-purple/20 border border-accent-purple/30 text-accent-purple px-2 py-0.5 rounded-full uppercase">v2.6 Web</span>
+                </h1>
+                <p class="text-[10px] font-mono text-gray-500 uppercase tracking-widest">Multi-Agent Collaborative Reasoning OS</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-4">
+            <button onclick="openApiKeyModal()" class="flex items-center gap-2 px-3.5 py-1.5 rounded-xl border border-obsidian-border bg-obsidian-surface hover:bg-obsidian-border transition duration-200 text-xs text-gray-300 font-mono">
+                <i data-lucide="key" class="w-3.5 h-3.5 text-accent-cyan animate-pulse"></i>
+                API KEYS
+            </button>
+            <div class="text-right hidden md:block">
+                <div class="text-xs text-gray-400 font-mono">SYSTEM RESOLVER</div>
+                <div class="text-[10px] font-mono text-green-400 uppercase tracking-wider flex items-center gap-1.5 justify-end">
+                    <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-ping"></span>
+                    SYNCED ONLINE
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace Frame -->
+    <main class="flex-grow flex flex-col md:flex-row w-full z-10 max-w-7xl mx-auto p-4 md:p-6 gap-6">
+        
+        <!-- Left Column: Primary Content Container (Unified Screens Router) -->
+        <div class="flex-grow flex flex-col min-w-0 md:w-2/3">
+            
+            <!-- VIEWPORT 1: WELCOME SCREEN -->
+            <div id="screenWelcome" class="flex-grow flex flex-col items-center justify-center p-8 bg-obsidian-surface/30 rounded-[32px] hud-border backdrop-blur-sm shadow-xl min-h-[500px]">
+                <div class="w-20 h-20 rounded-2xl bg-accent-purple/10 border border-accent-purple/25 flex items-center justify-center text-accent-purple mb-6 shadow-inner">
+                    <i data-lucide="brain" class="w-10 h-10 animate-bounce"></i>
+                </div>
+                <h2 class="text-xl md:text-2xl font-bold tracking-wider text-white text-center">INITIATE COGNITIVE COUPLING</h2>
+                <p class="text-xs text-gray-400 text-center max-w-md mt-3 mb-10 leading-relaxed font-sans">
+                    Select a high-fidelity document preset from the deck below, or upload a custom image to execute structured OCR, visual reasoning layers, and automated contradiction checks instantly.
+                </p>
+
+                <!-- Shortcut Preset Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-xl">
+                    <div onclick="loadPreset('LEGAL')" class="group p-5 rounded-2xl border border-accent-bronze/20 bg-accent-bronze/5 hover:bg-accent-bronze/10 hover:border-accent-bronze/40 cursor-pointer transition duration-300 flex items-start gap-4 shadow-sm">
+                        <div class="p-2.5 rounded-xl bg-accent-bronze/15 text-accent-bronze">
+                            <i data-lucide="shield-alert" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <div class="text-sm font-semibold text-white group-hover:text-accent-bronze transition">Legal Lease</div>
+                            <div class="text-[10px] text-gray-400 mt-1 lines-clamp-2">Rule contradictions & lease caveats.</div>
+                        </div>
+                    </div>
+
+                    <div onclick="loadPreset('HEALTHCARE')" class="group p-5 rounded-2xl border border-accent-cyan/20 bg-accent-cyan/5 hover:bg-accent-cyan/10 hover:border-accent-cyan/40 cursor-pointer transition duration-300 flex items-start gap-4 shadow-sm">
+                        <div class="p-2.5 rounded-xl bg-accent-cyan/15 text-accent-cyan">
+                            <i data-lucide="heart" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <div class="text-sm font-semibold text-white group-hover:text-accent-cyan transition">Medical ECG</div>
+                            <div class="text-[10px] text-gray-400 mt-1 lines-clamp-2">Transcription telemetry errors.</div>
+                        </div>
+                    </div>
+
+                    <div onclick="loadPreset('FINANCIAL')" class="group p-5 rounded-2xl border border-accent-mint/20 bg-accent-mint/5 hover:bg-accent-mint/10 hover:border-accent-mint/40 cursor-pointer transition duration-300 flex items-start gap-4 shadow-sm">
+                        <div class="p-2.5 rounded-xl bg-accent-mint/15 text-accent-mint">
+                            <i data-lucide="wallet" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <div class="text-sm font-semibold text-white group-hover:text-accent-mint transition">Procurement Sum</div>
+                            <div class="text-[10px] text-gray-400 mt-1 lines-clamp-2">Arithmetical billing variance.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEWPORT 2: CINEMATIC MULTI-AGENT TERMINAL VIEW -->
+            <div id="screenSimulating" class="hidden flex-grow flex flex-col p-6 bg-obsidian-surface rounded-[32px] hud-border min-h-[500px]">
+                <div class="text-xs font-mono font-bold uppercase tracking-widest text-[#00F0FF] mb-4 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-accent-cyan animate-ping"></span>
+                    Deploying Neural Agent Sequence...
+                </div>
+
+                <!-- Agent Status Tracker Nodes -->
+                <div class="grid grid-cols-5 gap-2 mb-6 text-center font-mono text-[9px] font-semibold text-gray-500">
+                    <div id="agentNode-0" class="flex flex-col items-center">
+                        <div class="w-7 h-7 rounded-full border border-obsidian-border bg-obsidian-main flex items-center justify-center text-[10px] text-gray-400 transition-all duration-300">1</div>
+                        <span class="mt-2 block">OCR Agent</span>
+                    </div>
+                    <div id="agentNode-1" class="flex flex-col items-center">
+                        <div class="w-7 h-7 rounded-full border border-obsidian-border bg-obsidian-main flex items-center justify-center text-[10px] text-gray-400 transition-all duration-300">2</div>
+                        <span class="mt-2 block">Domain Node</span>
+                    </div>
+                    <div id="agentNode-2" class="flex flex-col items-center">
+                        <div class="w-7 h-7 rounded-full border border-obsidian-border bg-obsidian-main flex items-center justify-center text-[10px] text-gray-400 transition-all duration-300">3</div>
+                        <span class="mt-2 block">Risk Engine</span>
+                    </div>
+                    <div id="agentNode-3" class="flex flex-col items-center">
+                        <div class="w-7 h-7 rounded-full border border-obsidian-border bg-obsidian-main flex items-center justify-center text-[10px] text-gray-400 transition-all duration-300">4</div>
+                        <span class="mt-2 block">Graph Solver</span>
+                    </div>
+                    <div id="agentNode-4" class="flex flex-col items-center">
+                        <div class="w-7 h-7 rounded-full border border-obsidian-border bg-obsidian-main flex items-center justify-center text-[10px] text-gray-400 transition-all duration-300">5</div>
+                        <span class="mt-2 block">Explainer AI</span>
+                    </div>
+                </div>
+
+                <!-- Cyber Terminal output card -->
+                <div class="flex-grow bg-black rounded-2xl border border-obsidian-border p-5 overflow-y-auto font-mono text-xs text-slate-300 scanline relative flex flex-col justify-end">
+                    <div id="terminalLog" class="space-y-2 max-h-[300px] overflow-y-auto">
+                        <!-- Simulated logs inserted dynamically -->
+                    </div>
+                </div>
+
+                <!-- Bottom compiling progress details -->
+                <div class="flex justify-between items-center mt-4">
+                    <div class="text-[11px] font-mono text-gray-500" id="simTime">COMPILATION METRIC: 0ms</div>
+                    <div class="w-4 h-4 border-2 border-accent-cyan border-t-transparent rounded-full animate-spin"></div>
+                </div>
+            </div>
+
+            <!-- VIEWPORT 3: THE COMPLETED STATE BENTO INTELLIGENCE BOARD -->
+            <div id="screenCompleted" class="hidden flex-grow flex flex-col gap-5">
+                
+                <!-- Bento Row 1: Document Context & Risk Index -->
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                    <!-- BENTO 1: Document Overview Title Card -->
+                    <div class="md:col-span-3 bg-obsidian-surface rounded-[24px] border border-obsidian-border p-5 flex flex-col justify-between h-[115px]">
+                        <div>
+                            <span class="text-[9px] font-bold font-mono tracking-widest text-[#00F0FF] uppercase" id="badgeDocType">COGNITIVE TARGET</span>
+                            <h3 class="text-base font-bold text-white mt-1 uppercase" id="completedDocTitle">No Document Loaded</h3>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                            <span class="text-[10px] font-mono text-gray-400" id="completedDocConfidence">CONFIDENCE: --%</span>
+                        </div>
+                    </div>
+
+                    <!-- BENTO 2: Risk Index Score Card -->
+                    <div class="md:col-span-2 bg-obsidian-surface rounded-[24px] border border-obsidian-border p-5 flex flex-col justify-between h-[115px]">
+                        <span class="text-[9px] font-bold font-mono tracking-wider text-gray-400 uppercase">Risk Index</span>
+                        <div class="flex items-baseline gap-1">
+                            <span class="text-4xl font-light text-red-500" id="riskIndexScore">0</span>
+                            <span class="text-xs text-red-500/60 font-mono">/100</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bento Row 2: Pipeline Stats -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- BENTO 3: AI Agent Pipeline status -->
+                    <div class="bg-blue-50/10 rounded-[24px] border border-blue-500/10 p-5 flex justify-between items-center h-[85px] relative overflow-hidden">
+                        <div class="absolute inset-0 bg-blue-500/[0.02] pointer-events-none"></div>
+                        <div class="flex flex-col justify-between h-full z-10">
+                            <span class="text-[9px] font-bold font-mono tracking-wider text-blue-400 uppercase">AI Agent Pipeline</span>
+                            <div class="flex gap-2 items-center text-xs font-mono">
+                                <span class="w-6 h-6 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-[10px]">O</span>
+                                <span class="w-6 h-6 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-[10px]">V</span>
+                                <span class="w-6 h-6 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-[10px]">R</span>
+                                <span class="text-[8px] text-blue-400/80 font-mono font-bold tracking-widest ml-1">LOADED</span>
+                            </div>
+                        </div>
+                        <i data-lucide="cpu" class="w-10 h-10 text-blue-500/25 z-10"></i>
+                    </div>
+
+                    <!-- BENTO 4: Cognitive Core metadata -->
+                    <div class="bg-obsidian-surface rounded-[24px] border border-obsidian-border p-5 flex flex-col justify-between h-[85px]">
+                        <span class="text-[9px] font-mono font-bold tracking-widest text-gray-400">COGNITIVE CORE</span>
+                        <div>
+                            <div class="text-xs font-bold text-white">GEMINI-3.5-FLASH</div>
+                            <div class="text-[8px] font-mono text-green-400 mt-0.5 tracking-wider uppercase">Status: SYNCED</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Double-Width Bento Card 3: Multimodal Smart-Lens -->
+                <div class="bg-obsidian-surface rounded-[32px] border border-obsidian-border p-5 flex flex-col">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="bg-black/30 border border-obsidian-border rounded-full px-3 py-1 flex items-center gap-1.5">
+                            <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                            <span class="text-[9px] font-mono font-semi-bold tracking-wider text-white">VISUAL REASONING MODE</span>
+                        </div>
+                        <span class="text-[10px] font-mono font-bold text-accent-cyan tracking-wider">I. SCAN-DECK & SENSING</span>
+                    </div>
+
+                    <!-- Overlay Selector Board -->
+                    <div class="grid grid-cols-2 gap-3 mb-4 bg-black/40 border border-obsidian-border p-1 rounded-xl">
+                        <button onclick="toggleHeatmap()" id="btnToggleHeatmap" class="py-2 rounded-lg font-mono text-[9px] font-bold text-center transition tracking-wider border border-accent-purple/30 bg-accent-purple/15 text-accent-purple">HEATMAP LAYER</button>
+                        <button onclick="toggleRisks()" id="btnToggleRisks" class="py-2 rounded-lg font-mono text-[9px] font-bold text-center transition tracking-wider border border-accent-purple/30 bg-accent-purple/15 text-accent-purple">ANOMALY COGNITION</button>
+                    </div>
+
+                    <!-- Interactive Smart Lens Visual Window -->
+                    <div class="relative w-full h-[200px] rounded-2xl bg-black border border-obsidian-border p-4 overflow-y-auto" id="smartLensCanvas">
+                        <div class="absolute inset-0 pointer-events-none opacity-5 border border-slate-500 flex items-center justify-center">
+                            <div class="w-4/5 h-4/5 border border-dashed border-slate-500 rounded-full"></div>
+                        </div>
+                        <div class="relative z-10 leading-relaxed text-xs text-gray-300 font-sans whitespace-pre-wrap" id="ocrDisplayBlock">
+                            <!-- Populated with scanned text paragraphs -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Double-Width Bento Card 4: Knowledge Graph Fragment -->
+                <div class="bg-obsidian-surface rounded-[32px] border border-obsidian-border p-5 flex flex-col relative">
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="text-[10px] font-mono font-bold text-accent-cyan tracking-wider uppercase">II. Knowledge Graph Fragment</span>
+                        <i data-lucide="share-2" class="w-4 h-4 text-gray-500 hover:text-white cursor-pointer"></i>
+                    </div>
+
+                    <!-- Graphic Canvas View -->
+                    <div class="relative w-full h-[240px] bg-[#06070B] rounded-2xl border border-obsidian-border overflow-hidden" id="graphContainer">
+                        <!-- Interactive SVG Canvas elements -->
+                        <svg class="absolute inset-0 w-full h-full z-0" id="svgEdges"></svg>
+                        
+                        <!-- Floating dynamic node buttons -->
+                        <div id="htmlNodes" class="absolute inset-0 w-full h-full z-10"></div>
+
+                        <!-- Selected Node Indicator popout box -->
+                        <div id="floatingPopout" class="hidden absolute bottom-3 left-3 right-3 bg-obsidian-main/95 border border-accent-cyan rounded-xl p-3 flex items-center justify-between z-20 shadow-2xl backdrop-blur-md">
+                            <div class="flex items-center gap-3">
+                                <span class="w-2.5 h-2.5 rounded-full bg-accent-cyan" id="popoutDot"></span>
+                                <div>
+                                    <h4 class="text-[12px] font-bold text-white leading-none" id="popoutLabel">Entity Name</h4>
+                                    <span class="text-[8px] font-mono text-gray-400 mt-1 uppercase" id="popoutType">ENTITY: TYPE</span>
+                                </div>
+                            </div>
+                            <button onclick="selectNode(null)" class="text-gray-400 hover:text-white p-1">
+                                <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bento Row 5: Detailed Auditing logs and recommendations -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Explainable Evidence card -->
+                    <div class="bg-obsidian-surface rounded-[28px] border border-obsidian-border p-5 flex flex-col min-h-[160px]">
+                        <span class="text-[9px] font-mono font-bold text-accent-cyan uppercase tracking-widest mb-2">Cognitive Reasoning Evidence</span>
+                        <p class="text-xs text-gray-300 leading-relaxed font-sans mt-1" id="completedExplanation">---</p>
+                    </div>
+
+                    <!-- Timeline Agenda index card -->
+                    <div class="bg-obsidian-surface rounded-[28px] border border-obsidian-border p-5 flex flex-col min-h-[160px]">
+                        <span class="text-[9px] font-mono font-bold text-accent-cyan uppercase tracking-widest mb-2">Extracted Milestones Tracker</span>
+                        <div class="space-y-2 mt-2 max-h-[120px] overflow-y-auto" id="completedTimeline">
+                            <!-- Populated timelines -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Anomaly Warnings List -->
+                <div class="bg-obsidian-surface rounded-[28px] border border-obsidian-border p-5 flex flex-col">
+                    <span class="text-[9px] font-mono font-bold text-red-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                        <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-red-400"></i>
+                        Vulnerability Audit & Conflicting Statements
+                    </span>
+                    <div class="space-y-3" id="completedRisks">
+                        <!-- Populated contradiction warnings -->
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Right Side: Interactive Deck Options & History Controller -->
+        <div class="w-full md:w-1/3 flex flex-col gap-6">
+            
+            <!-- Quick deck navigation box -->
+            <div class="bg-obsidian-surface rounded-[24px] border border-obsidian-border p-5">
+                <h3 class="text-xs font-mono font-bold text-gray-300 tracking-wider mb-4 uppercase">SYSTEM CHANNELS</h3>
+                
+                <div class="flex flex-col gap-2">
+                    <button onclick="loadPreset('LEGAL')" class="w-full text-left p-3 rounded-xl border border-obsidian-border hover:border-accent-bronze/30 bg-obsidian-main hover:bg-accent-bronze/5 font-sans transition-all duration-200">
+                        <div class="text-xs font-semibold text-white">Commercial Lease Agreement</div>
+                        <div class="text-[9px] font-sans text-gray-500 mt-0.5">Audit mutual rent clauses exclusions</div>
+                    </button>
+                    <button onclick="loadPreset('HEALTHCARE')" class="w-full text-left p-3 rounded-xl border border-obsidian-border hover:border-accent-cyan/30 bg-obsidian-main hover:bg-accent-cyan/5 font-sans transition-all duration-200">
+                        <div class="text-xs font-semibold text-white">Cardiology Diagnostic Report</div>
+                        <div class="text-[9px] font-sans text-gray-500 mt-0.5">Cross check telemetry measurements</div>
+                    </button>
+                    <button onclick="loadPreset('FINANCIAL')" class="w-full text-left p-3 rounded-xl border border-obsidian-border hover:border-accent-mint/30 bg-obsidian-main hover:bg-accent-mint/5 font-sans transition-all duration-200">
+                        <div class="text-xs font-semibold text-white">Procurement Invoice</div>
+                        <div class="text-[9px] font-sans text-gray-500 mt-0.5">Audit itemized sums & taxes due</div>
+                    </button>
+                    <button onclick="loadPreset('ACADEMIC')" class="w-full text-left p-3 rounded-xl border border-obsidian-border hover:border-accent-purple/30 bg-obsidian-main hover:bg-accent-purple/5 font-sans transition-all duration-200">
+                        <div class="text-xs font-semibold text-white">Neural Research Preprint</div>
+                        <div class="text-[9px] font-sans text-gray-500 mt-0.5">Correlate text stats with curves</div>
+                    </button>
+                    <button onclick="loadPreset('GENERAL')" class="w-full text-left p-3 rounded-xl border border-obsidian-border hover:border-accent-pink/30 bg-obsidian-main hover:bg-accent-pink/5 font-sans transition-all duration-200">
+                        <div class="text-xs font-semibold text-white">HA System Specifications</div>
+                        <div class="text-[9px] font-sans text-gray-500 mt-0.5">Scan Redis cluster routing specs</div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Custom Sandbox Upload File panel -->
+            <div class="bg-obsidian-surface rounded-[24px] border border-obsidian-border p-5">
+                <h3 class="text-xs font-mono font-bold text-gray-300 tracking-wider mb-2 uppercase flex items-center gap-1.5">
+                    <i data-lucide="upload-cloud" class="w-4 h-4 text-accent-cyan animate-pulse"></i>
+                    MULTIMODAL UPLINK
+                </h3>
+                <p class="text-[10px] text-gray-500 leading-relaxed mb-4">
+                    Uplink image scans directly to invoke real Gemini OCR text processing blocks.
+                </p>
+
+                <div class="relative group cursor-pointer border-2 border-dashed border-obsidian-border hover:border-accent-cyan/50 bg-black/40 rounded-xl p-5 text-center transition duration-200 overflow-hidden" onclick="triggerFileInput()">
+                    <input type="file" id="fileInput" accept="image/*" class="hidden" onchange="handleFileUpload(event)">
+                    <i data-lucide="image" class="w-8 h-8 text-slate-500 group-hover:text-accent-cyan transition duration-200 mx-auto mb-2"></i>
+                    <p class="text-[11px] font-semibold text-slate-300">Choose scan file / image</p>
+                    <p class="text-[9px] text-slate-500 mt-0.5">Supports PNG, JPEG up to 10MB</p>
+                </div>
+            </div>
+
+            <!-- Audit Scans History Section -->
+            <div class="bg-obsidian-surface rounded-[24px] border border-obsidian-border p-5 flex-grow">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xs font-mono font-bold text-gray-300 tracking-wider uppercase">Audit Scans History</h3>
+                    <button onclick="clearHistory()" class="text-[10px] font-mono text-red-400 hover:text-red-300 flex items-center gap-1 transition">
+                        <i data-lucide="trash-2" class="w-3 h-3"></i> CLEAR ALL
+                    </button>
+                </div>
+
+                <div class="space-y-2 max-h-[250px] overflow-y-auto" id="historyList">
+                    <!-- Filled dynamically with previously modeled scans -->
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- API KEY MODAL DIALOG -->
+    <div id="apiKeyModal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+        <div class="bg-obsidian-surface border border-obsidian-border rounded-[24px] p-6 w-full max-w-sm shadow-2xl relative">
+            <button onclick="closeApiKeyModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white p-1">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+            <div class="flex items-center gap-2 mb-4">
+                <i data-lucide="key" class="w-5 h-5 text-accent-cyan"></i>
+                <h3 class="text-sm font-bold text-white tracking-wide">GEMINI CREDENTIALS</h3>
+            </div>
+            <p class="text-xs text-gray-400 leading-relaxed mb-4">
+                To uplink multi-agent pipelines to the live server node, key in your Gemini Key below. This key remains entirely private inside your local client.
+            </p>
+            <input type="password" id="apiKeyInput" placeholder="AIStudio Key (AIzaSy...)" class="w-full bg-black border border-obsidian-border focus:border-accent-cyan rounded-xl px-4 py-2 text-xs text-white placeholder-slate-600 focus:outline-none font-mono mb-4">
+            <div class="flex gap-2">
+                <button onclick="saveApiKey()" class="flex-grow bg-accent-purple hover:bg-accent-purple/90 text-white font-semibold py-2 rounded-xl text-xs transition">SECURE SAVE</button>
+                <button onclick="closeApiKeyModal()" class="flex-grow border border-obsidian-border hover:bg-obsidian-border text-gray-300 font-semibold py-2 rounded-xl text-xs transition">CANCEL</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PRESETS DATABASE -->
+    <script>
+        const PRESETS = {
+            LEGAL: {
+                title: "Apex Lease Contradiction Scan",
+                docType: "LEGAL",
+                confidenceScore: 0.97,
+                summary: "A highly risky commercial lease agreement showing a severe, legally invalid contradiction regarding Base Rent stability between early rental covenants and hidden adjustment riders.",
+                explanation: "The OCR and Risk agents successfully cross-referenced Paragraph 4 and Paragraph 18. Paragraph 4 asserts rent is 'fully fixed and immutable for the entire duration' ($5,000/mo) with no increases before month 24, whereas Paragraph 18 gives the Landlord the 'unilateral right' to raise rent 15% after just 6 months. This represents a binary logical direct contradiction.",
+                fullOcrText: "COMMERCIAL LEASE AGREEMENT\nThis Lease is entered into this 15th day of June, 2026, by and between APEX REAL ESTATE HOLDINGS (\"Landlord\") and NEOSOFT TECHNOLOGIES CORP (\"Tenant\").\n\nParagraph 4. BASE RENT: Tenant agrees to pay Landlord Base Rent in the amount of Five Lease Units ($5,000.00) per calendar month, fully fixed and immutable for the duration of the entire two (2) year tenancy. No increases shall take effect prior to month 24.\n\nParagraph 12. NOTICES AND AGREEMENTS: This writing constitutes the full agreement between parties.\n\nParagraph 18. RENT ADJUSTMENTS & TAXES: Notwithstanding anything contrary herein, Landlord hereby reserves the unilateral right to adjust the Base Rent upward by up to fifteen percent (15%) after the completion of six (6) initial lease months, providing ten (10) consecutive calendar days written notice via registered mail.",
+                nodes: [
+                    { id: "landlord", label: "Apex Holdings", type: "ORGANIZATION", x: 0.3, y: 0.25 },
+                    { id: "tenant", label: "NeoSoft Technologies", type: "ORGANIZATION", x: 0.7, y: 0.25 },
+                    { id: "p4_rent", label: "Rent: $5,000 (Fixed 2yrs)", type: "METRIC", x: 0.2, y: 0.6 },
+                    { id: "p18_rent", label: "Rent Raise +15% (6mos)", type: "CONTRA_ELEMENT", x: 0.5, y: 0.8 },
+                    { id: "contradiction", label: "Mismatched Lease Baseline", type: "RISK_FLAG", x: 0.5, y: 0.5 },
+                    { id: "notice", label: "10-Day Notice Period", type: "RISK_FLAG", x: 0.8, y: 0.6 }
+                ],
+                edges: [
+                    { from: "landlord", to: "contradiction", relation: "REPRESENTS" },
+                    { from: "tenant", to: "contradiction", relation: "REPRESENTS" },
+                    { from: "p4_rent", to: "contradiction", relation: "ESTABLISHES" },
+                    { from: "p18_rent", to: "contradiction", relation: "AMENDS_ILLEGALLY" },
+                    { from: "p18_rent", to: "notice", relation: "TRIGGERS" },
+                    { from: "p4_rent", to: "p18_rent", relation: "CONTRADICTS" }
+                ],
+                risks: [
+                    { severity: "CRITICAL", title: "Rent Stabilisation Direct Contradiction", clauseText: "Paragraph 4 vs Paragraph 18", reasoning: "Paragraph 4 promises completely fixed rents of $5,000/mo for 24 months, while Paragraph 18 claims the Landlord can unilaterally raise it by 15% at 6 months. Executing this exposes Tenant to major unbudgeted overhead adjustments.", suggestion: "Amend Paragraph 18 to align with Paragraph 4, or delete Paragraph 18 entirely to preserve the fixed-rate lease covenant." },
+                    { severity: "WARNING", title: "Unreasonably Short Adjustment Notice", clauseText: "Paragraph 18 ('10 consecutive calendar days notice')", reasoning: "A rent increase notice of 10 days is administratively hostile, giving virtually no lead time to audit or dispute.", suggestion: "Renegotiate notice period from 10 days to a commercially standard 45-60 business days." },
+                    { severity: "INFO", title: "Full Integration Clause Detected", clauseText: "Paragraph 12 ('This writing constitutes the full agreement')", reasoning: "Standard integration limits verbal side-deals. Prevents external evidence from modifying lease interpretation.", suggestion: "Ensure all agreed verbal concessions are fully documented in the written addendums." }
+                ],
+                timeline: [
+                    { date: "June 15, 2026", title: "Lease Commencement", significance: "The contract goes into effect; tenant takes initial office possession.", level: "HIGH" },
+                    { date: "Dec 15, 2026", title: "6-Month Adjustment Window", significance: "The date at which Paragraph 18's rate adjustments becomes active.", level: "HIGH" },
+                    { date: "May 15, 2028", title: "Contract Expiration", significance: "Standard contract termination date under the 24-month fixed term.", level: "MEDIUM" }
+                ],
+                agentSteps: [
+                    { agentId: "OCRAgent", agentName: "OCR Layout Specialist", durationMs: 320, logs: "Scanned PDF. Mapped coordinates for Paragraph 4 (Y: 0.32) and Paragraph 18 (Y: 0.84)... Found 4 paragraphs and signature zones." },
+                    { agentId: "ContextAgent", agentName: "Cognitive Classifier", durationMs: 150, logs: "Document format matches 'Commercial Lease Contract'. Applying Legal AI advisory expert-mode schema." },
+                    { agentId: "RiskAgent", agentName: "Adversarial Risk Auditor", durationMs: 680, logs: "Running cross-clause validation... Match found between keyword 'fixed rent' and 'adjust Base Rent'. Logic verification: mutual exclusion found. Triggered CRITICAL conflict flag on Paragraph 4 vs Paragraph 18." },
+                    { agentId: "GraphAgent", agentName: "Knowledge Graph Weaver", durationMs: 430, logs: "Extracted 6 structural nodes. Calculated spring positions to visually segregate the landlord-tenant agreement lines and isolate the collision nodes of the contradiction." },
+                    { agentId: "ExplainAgent", agentName: "Explainable AI Engine", durationMs: 200, logs: "Evidence mappings established. Confidence score calibrated at 97% based on explicit textual overlap." }
+                ]
+            },
+            HEALTHCARE: {
+                title: "Sirius Cardiology Diagnostic Scan",
+                docType: "HEALTHCARE",
+                confidenceScore: 0.99,
+                summary: "Critical life-safety medical anomaly scan. A direct diagnostic contradiction between Normal Clinical Ejection Fraction metrics and Depressed Echocardiography logs.",
+                explanation: "The Diagnostic AI agent cross-referenced Cardiology telemetry in SECTION 2 (which lists EF of 62%, 'Normal/Healthy') with the raw ultrasound telemetry in SECTION 8 (which lists EF as 35% with 'severe left ventricular global dysfunction'). A 62% EF and 35% EF are clinically contradictory.",
+                fullOcrText: "SIRIUS HEART & VASCULAR CLINICAL CLINIC\nCARDIOLOGY LABORATORY WORKUP RECORD\nDate: May 12, 2026 | Patient ID: PT-9042\nPhysician: Dr. Elena Vance, MD | Specialty: Interventional Cardiology\n\nSECTION 2. SUMMARY OF CLINICAL FINDINGS & DIAGNOSED METRICS:\nThe patient presented with mild sinus bradycardia. Standard 12-lead Electrocardiogram (ECG) reveals normal sinus rhythm at 55 bpm, healthy axis. Transthoracic Echocardiography (TTE) indicates healthy left ventricular chamber dimensions and healthy global systolic performance, with a Normal Calculated Ejection Fraction of 62% [62 percent].\n\nSECTION 8. ECHOCARDIOGRAPHY LOG DETAIL:\nQuantitative ultrasound telemetry reports: Diastolic Vol: 110mL, Systolic Vol: 71.5mL.\nCalculated Ejection Fraction (EF) telemetric log is severely depressed at 35% [35 percent] representing extensive hypokinesia of the mid-anteroseptal walls. Severe left ventricular systolic global dysfunction.",
+                nodes: [
+                    { id: "physician", label: "Dr. Elena Vance", type: "PERSON", x: 0.5, y: 0.2 },
+                    { id: "pt_sinus", label: "Normal Rhythm (55 bpm)", type: "METRIC", x: 0.2, y: 0.4 },
+                    { id: "sec2_ef", label: "Listed EF: 62% (Normal)", type: "METRIC", x: 0.3, y: 0.7 },
+                    { id: "sec8_ef", label: "Calculated EF: 35% (Severe)", type: "CONTRA_ELEMENT", x: 0.7, y: 0.7 },
+                    { id: "heart_fail", label: "Imminent Heart Fail", type: "RISK_FLAG", x: 0.8, y: 0.4 },
+                    { id: "conflict_node", label: "EKG Telemetry Conflict", type: "RISK_FLAG", x: 0.5, y: 0.5 }
+                ],
+                edges: [
+                    { from: "physician", to: "conflict_node", relation: "REVIEWS" },
+                    { from: "pt_sinus", to: "sec2_ef", relation: "COEXISTS" },
+                    { from: "sec2_ef", to: "conflict_node", relation: "DECLARES_ERRONEOUSLY" },
+                    { from: "sec8_ef", to: "conflict_node", relation: "MEASURES_TELEMETRY" },
+                    { from: "sec8_ef", to: "heart_fail", relation: "INDICATES" },
+                    { from: "sec2_ef", to: "sec8_ef", relation: "CONTRADICTS" }
+                ],
+                risks: [
+                    { severity: "CRITICAL", title: "Ejection Fraction Transcription Discrepancy", clauseText: "SECTION 2 (62%) vs SECTION 8 (35%)", reasoning: "SECTION 2 states ejection fraction is normal at 62%, while SECTION 8 details an objectively depressed telemetry of 35% (heart failure indicator). This represents a direct life-safety documentation threat.", suggestion: "Recheck raw echocardiography images immediately. Contact Dr. Elena Vance to resolve transcription variance before prescribing therapy." },
+                    { severity: "WARNING", title: "Ventricular Wall Hypokinesia", clauseText: "SECTION 8 ('hypokinesia of mid-anteroseptal walls')", reasoning: "Hypokinesia indicates damaged cardiac muscle from ischemia. It directly contradicts SECTION 2's 'healthy ventricular walls' label.", suggestion: "Order an immediate Myocardial Perfusion Imaging (MPI) or Cardiac MRI to rule out active coronary artery occlusion." }
+                ],
+                timeline: [
+                    { date: "May 12, 2026", title: "Patient Intake Summary", significance: "Initial ECG recorded at clinic demonstrating healthy baseline sinus bradycardia.", level: "MEDIUM" },
+                    { date: "May 12, 2026", title: "TTE Diagnostic Run", significance: "Ultrasonic sensors capture core chamber dimensions and systolic flow metrics.", level: "HIGH" }
+                ],
+                agentSteps: [
+                    { agentId: "OCRAgent", agentName: "ECG Image OCR Scan", durationMs: 410, logs: "Scanned Cardiology workflow PDF. Extracted patient ID 'PT-9042'. Decoded numeric data '62%' and '35%' alongside cardiac terminology." },
+                    { agentId: "ContextAgent", agentName: "Clinical Classifier", durationMs: 120, logs: "Identified medical chart/ECG report layout. Loaded Healthcare Clinical Intelligence Prompt Engine." },
+                    { agentId: "RiskAgent", agentName: "Cardiology Logic Validator", durationMs: 720, logs: "discrepancy flagged. Normal limits are >= 50%. A value of 35% represents major ventricular hypokinesia. The 27% difference between values is a statistical medical impossibility." },
+                    { agentId: "GraphAgent", agentName: "Cardiology Graph Solver", durationMs: 310, logs: "Assembled heart nodes. Centered the conflict node between ECG records and Ultrasound logs to highlight transcription source mismatch." }
+                ]
+            },
+            FINANCIAL: {
+                title: "Nexus Cloud Procurement Scan",
+                docType: "FINANCIAL",
+                confidenceScore: 0.98,
+                summary: "An invoice containing an undocumented discrepancy of $1,200 between individual line balances ($11,250) and the total payable amount ($12,450).",
+                explanation: "The Financial Audit and Ledger agents analyzed individual columns. The individual line items total $11,250.00. However, the listed Total Due reflects $12,450.00. There is a delta of exactly $1,200.00. Since Delaware tax is listed as 0.00%, this represents a math mismatch or a hidden, undisclosed service charge.",
+                fullOcrText: "NEXUS CLOUD SOLS - PROCUREMENT INVOICE\nInvoice No: INV-2026-883 | Issue Date: May 10, 2026\nBilling Entity: NEXUS CLOUD SYSTEMS LLC, DE\nPurchaser: ALPHA LABS INC, SAN FRANCISCO, CA\n\nLINE ITEMS DETAILED:\n1. Core Cluster Server Rack (M-Class Gen-3) [Qty: 2] @ $4,500.00 each .............. $9,000.00\n2. Liquid Cooling Sub-Rack modules [Qty: 4] @ $250.00 each ........................ $1,000.00\n3. Systems Integration Architecture Consulting hours [Qty: 10] @ $125.00/hr ...... $1,250.00\n\nINVOICE SUMMARY & TOTALS:\nTOTAL ITEMIZED SUM OF CHARGES: $11,250.00\nTAX APPLICABLE (0.00% - DE Exempt): $0.00\n=========================================\nTOTAL DUE & PAYABLE AMOUNTS: $12,450.00\n=========================================\nPayment Net 14 terms. Late payments accrue 10% penalty per calendar week.",
+                nodes: [
+                    { id: "nexus", label: "Nexus Cloud", type: "ORGANIZATION", x: 0.2, y: 0.25 },
+                    { id: "alpha", label: "Alpha Labs", type: "ORGANIZATION", x: 0.8, y: 0.25 },
+                    { id: "item_sum", label: "Itemized: $11,250", type: "METRIC", x: 0.35, y: 0.65 },
+                    { id: "total_due", label: "Total Due: $12,450", type: "CONTRA_ELEMENT", x: 0.65, y: 0.65 },
+                    { id: "delta", label: "Hidden Delta: $1,200", type: "RISK_FLAG", x: 0.5, y: 0.45 },
+                    { id: "penalty", label: "+10%/W Late fee", type: "RISK_FLAG", x: 0.75, y: 0.85 }
+                ],
+                edges: [
+                    { from: "nexus", to: "delta", relation: "INVOICES" },
+                    { from: "alpha", to: "delta", relation: "OWES" },
+                    { from: "item_sum", to: "delta", relation: "SUM_PRODUCT" },
+                    { from: "total_due", to: "delta", relation: "COLLIDES_WITH" },
+                    { from: "total_due", to: "penalty", relation: "ACC_ON_LAPSE" },
+                    { from: "item_sum", to: "total_due", relation: "MUTUALLY_EXCLUSIVE_TOTALS" }
+                ],
+                risks: [
+                    { severity: "CRITICAL", title: "Ledger Sum Arithmetic Mismatch", clauseText: "Line Items ($11,250) vs Total Due ($12,450)", reasoning: "The listed individual purchase blocks do not sum up to the total payable. An undisclosed amount of $1,200 has been added to the final due sum without description.", suggestion: "Dispute invoice instantly. Require Nexus Cloud Systems to issue a corrected invoice itemizing the $1,200 surplus, or reducing total due to $11,250." },
+                    { severity: "WARNING", title: "Aggressive Late Payment Surcharge", clauseText: "Net 14 Terms ('10% penalty per calendar week')", reasoning: "A weekly penalty of 10% is highly usurious, representing an annualized rate of over 520%. This is likely legally unenforceable under CA and DE corporate statutes.", suggestion: "Amend surcharge clause to standard 1.5% per month or state statutory prime rate." }
+                ],
+                timeline: [
+                    { date: "May 10, 2026", title: "Invoice Issuance", significance: "Nexus Cloud generates invoice INV-2026-883 with Delaware zero tax rules.", level: "MEDIUM" },
+                    { date: "May 24, 2026", title: "Net 14 Term Limit", significance: "Payment contract deadline before weekly 10% late surcharges compound.", level: "HIGH" }
+                ],
+                agentSteps: [
+                    { agentId: "OCRAgent", agentName: "Invoice OCR Reader", durationMs: 190, logs: "Scanned procurement receipt. Structured grid layout coordinates. Mapped columns: Quantity, Unit Price, Line Total." },
+                    { agentId: "ContextAgent", agentName: "Cognitive Classifier", durationMs: 80, logs: "Document categorised as Corporate Procurement Invoice. Triggering accounting compliance agent pipelines." },
+                    { agentId: "RiskAgent", agentName: "Ledger Auditor", durationMs: 510, logs: "Triggering math validation sub-routine: Qty[2]*4500 + Qty[4]*250 + Qty[10]*125 = 9000 + 1000 + 1250 = 11250. Total Due asserts 12450. System delta error: $1,200. Verification failure: Balance does not close." },
+                    { agentId: "GraphAgent", agentName: "Knowledge Graph Weaver", durationMs: 240, logs: "Formulating transaction flow. Connects billing nodes with the missing delta node placed dynamically as a bridge tension element." }
+                ]
+            },
+            ACADEMIC: {
+                title: "SLP-Net Research Preprint Scan",
+                docType: "ACADEMIC",
+                confidenceScore: 0.95,
+                summary: "An academic paper preprint containing a direct, major academic reporting anomaly between benchmarks listed in text (94.2%) and actual plotted curves in the figures (82.5%).",
+                explanation: "The Visual reasoning agent scanned Figure 4 graph and matched visual accuracy curves of 82.5% with SECTION 3.2 text asserting 94.2% top-1 accuracy. An error of 11.7% suggests either a critical graph scaling error, or academic data inflation.",
+                fullOcrText: "PREPRINT ARCHIVE OF NEURAL SCI - ARCHISTRY6\n\"Attention is All You Deserve: Linearized Spatial Projections on Neural Memory Units\"\nAuthors: Prof. K. Reinhardt, Dr. Linus Chen | AI Labs, Zürich.\n\nABSTRACT:\nWe present a linearized alternative to multi-head spatial self-attention, reducing complexity from O(N^2) quadratic space allocations to O(N) linear spatial dimensions. By projecting memory units spatial queries into a localized 3D affine canvas, we achieve robust representation grids. \n\nSECTION 3.2. BENCHMARKING AND EXPERIMENTAL OUTCOME:\nWe tested our Spatial Linear Projection model (SLP-Net) on the ImageNet-1K computer vision dataset. Under standard parameters, SLP-Net achieves a peak top-1 validation classification accuracy of 94.2% [Ninety-four point two percent], which outperforms basic Vision Transformers (ViT-Base) by 1.8%.\n\nFIGURE 4. IMAGE-NET 1K PERFORMANCE GRAPH LOGS:\nCurves show training learning dynamics. Plot line (A) represents ViT-Hub baseline peaking at 85.3% accuracy. Plot line (B) represents our novel Spatial Linear Projection (SLP-Net) algorithm, which peaks at exactly 82.5% [eighty-two point five percent] accuracy, experiencing early gradient decay.",
+                nodes: [
+                    { id: "authors", label: "Prof. Reinhardt & Chen", type: "PERSON", x: 0.5, y: 0.2 },
+                    { id: "slp_net", label: "SLP-Net Algorithm", type: "ORGANIZATION", x: 0.25, y: 0.45 },
+                    { id: "text_acc", label: "Text: 94.2% Accuracy", type: "METRIC", x: 0.3, y: 0.8 },
+                    { id: "fig_acc", label: "Figure: 82.5% Accuracy", type: "CONTRA_ELEMENT", x: 0.7, y: 0.8 },
+                    { id: "err_delta", label: "Delta Gap: 11.7%", type: "RISK_FLAG", x: 0.5, y: 0.65 },
+                    { id: "complexity", label: "O(N) Complexity", type: "METRIC", x: 0.75, y: 0.45 }
+                ],
+                edges: [
+                    { from: "authors", to: "slp_net", relation: "DEVELOPED" },
+                    { from: "slp_net", to: "complexity", relation: "ACHIEVES" },
+                    { from: "slp_net", to: "text_acc", relation: "REPORTS_IN_TEXT" },
+                    { from: "slp_net", to: "fig_acc", relation: "PLOTS_IN_FIGURE" },
+                    { from: "text_acc", to: "fig_acc", relation: "CONTRADICTS" },
+                    { from: "text_acc", to: "err_delta", relation: "TRIGGERS" },
+                    { from: "fig_acc", to: "err_delta", relation: "TRIGGERS" }
+                ],
+                risks: [
+                    { severity: "CRITICAL", title: "Empirical Result Reporting Inconsistency", clauseText: "SECTION 3.2 (94.2% top-1) vs Figure 4 Chart (82.5% top-1)", reasoning: "Text reports state-of-the-art results beating the baseline, but the actual validation curves in Figure 4 show a modest 82.5% accuracy, which is lower than the baseline of 85.3%. This will trigger immediate peer rejection.", suggestion: "Inspect research logs to confirm if the Figure 4 image was imported from an outdated run, or if the text claims are exaggerated." },
+                    { severity: "WARNING", title: "Unaddressed Gradient Decay in Figure", clauseText: "Figure 4 Caption ('experiencing early gradient decay')", reasoning: "Gradient decay severely limits the scalability of spatial neural projections. The preprint abstract claims 'robust spatial representation grids' but glosses over active gradient limits.", suggestion: "Discuss the training limitations and proposed optimization adjustments objectively in Section 4 (Discussion) to avoid reviewer criticisms." }
+                ],
+                timeline: [
+                    { date: "June 2017", title: "Attention Paradigm Draft", significance: "Introduction of conventional quadratic O(N2) multi-head transformers.", level: "LOW" },
+                    { date: "May 15, 2026", title: "Preprint Drafting Completed", significance: "Swiss AI labs compile baseline metrics and author research drafts.", level: "MEDIUM" }
+                ],
+                agentSteps: [
+                    { agentId: "OCRAgent", agentName: "OCR Grid Reader", durationMs: 530, logs: "Extracted abstract headers. Parsed complex superscript formulas and mapped values '94.2%' in Paragraph 3 and '82.5%' in figure caption." },
+                    { agentId: "ContextAgent", agentName: "Academic Classifier", durationMs: 130, logs: "Detected scholarly formatting, abstracts, and reference sections. Transferred execution to Academic reasoning mod." },
+                    { agentId: "RiskAgent", agentName: "Scientific Cross-Auditor", durationMs: 690, logs: "Cross-referenced textual assertion with figure logs. Plot line comparison indicates a direct reporting shortfall of 11.7%. Under peer-review guidelines, this represents a severe validation conflict." }
+                ]
+            },
+            GENERAL: {
+                title: "Cosmos HA System Specification",
+                docType: "GENERAL",
+                confidenceScore: 0.96,
+                summary: "An architectural specification showing a critical pipeline contradiction between caching specifications (which mandate Redis buffers) and the physical system block diagram (which bypasses Redis entirely, connecting API Gateway directly to Spanner).",
+                explanation: "The Visual reasoning agent audited System Diagram Canvas v2 and discovered a direct write trail from API Gateway to Spanner Database. The OCR agent, meanwhile, analyzed Paragraph B which explicitly mandates a buffering stage through a Redis Cluster to prevent write lockups.",
+                fullOcrText: "COSMOS INFRASTRUCTURE ARCHITECTURE CANVAS\nSpecification Document: System Schema v2.6.\n\nParagraph B. HIGH-AVAILABILITY CACHING RULES:\nTo prevent database write lockups during transaction rushes, all incoming transaction API payloads MUST first pass through a highly distributed, zero-loss Redis In-Memory Cache Cluster, buffer queuing payloads, before getting written by the async Spanner Writer Agent.\n\nParagraph K. PHYSICAL NETWORK DIAGRAM DIRECTORY:\nCanvas Diagram v2 (File: diagram.png) visualizes architecture paths:\n- Node [API Gateway IP: 10.0.1.1] shoots stream directly to Node [Spanner DB Cluster Host: 10.0.2.2] passing no firewalls or cache bridges. No Redis cache node is wired.",
+                nodes: [
+                    { id: "api_gw", label: "API Gateway (10.0.1.1)", type: "METRIC", x: 0.2, y: 0.5 },
+                    { id: "spanner", label: "Spanner DB (10.0.2.2)", type: "METRIC", x: 0.8, y: 0.5 },
+                    { id: "redis_spec", label: "Redis Mandates (Para B)", type: "ORGANIZATION", x: 0.5, y: 0.2 },
+                    { id: "spec_mismatch", label: "Bypassed Cache Loop", type: "RISK_FLAG", x: 0.5, y: 0.5 },
+                    { id: "write_lock", label: "Spanner Write Lockup", type: "RISK_FLAG", x: 0.8, y: 0.8 }
+                ],
+                edges: [
+                    { from: "api_gw", to: "spanner", relation: "CONNECTS_DIRECTLY_IN_DIAGRAM" },
+                    { from: "redis_spec", to: "api_gw", relation: "PRESCRIBES_CACHE_FOR" },
+                    { from: "api_gw", to: "spec_mismatch", relation: "BYPASSES_MANDATE" },
+                    { from: "spanner", to: "write_lock", relation: "EXPOSES_TO_LOAD" },
+                    { from: "redis_spec", to: "spec_mismatch", relation: "CONTRADICTS_DIAGRAM_PATH" }
+                ],
+                risks: [
+                    { severity: "CRITICAL", title: "Schema Pipeline Cache Bypass", clauseText: "Paragraph B Caching Rules vs Diagram v2 Network Connections", reasoning: "The text strictly mandates a Redis Cluster buffer to avoid write locks on Spanner during transaction rushes. However, the physical network diagram connects API Gateway directly to Spanner, bypassing the cache. This undercuts system resilience.", suggestion: "Redraw diagram.png to route API Gateway traffic to Redis cluster nodes, with Redis syncing asynchronous block writes to Spanner." }
+                ],
+                timeline: [
+                    { date: "May 20, 2026", title: "Specification Drafted", significance: "Initial draft of system schema v2.6 including caching specs.", level: "MEDIUM" },
+                    { date: "May 22, 2026", title: "Diagram v2 Issued", significance: "The physical architectural connection diagrams are published.", level: "HIGH" }
+                ],
+                agentSteps: [
+                    { agentId: "OCRAgent", agentName: "Visual Diagram OCR Scanner", durationMs: 340, logs: "Parsed blueprint schema text logs. Logged system IPs '10.0.1.1' and '10.0.2.2'." },
+                    { agentId: "ContextAgent", agentName: "Architecture Classifier", durationMs: 90, logs: "Classified document as System Architecture Specification under General canvas reasoning template." },
+                    { agentId: "RiskAgent", agentName: "Diagram Network Auditor", durationMs: 580, logs: "Cross-referenced network path matrices. Spec says: API Gateway -> Redis Cluster -> Spanner DB. Diagram shows: API Gateway -> Spanner DB. Mismatch is a critical high-load failure vector." }
+                ]
+            }
+        };
+
+        let currentDoc = null;
+        let heatmapOn = true;
+        let risksOn = true;
+        let selectedNode = null;
+        let historyList = [];
+
+        // Save local key
+        function saveApiKey() {
+            const val = document.getElementById('apiKeyInput').value;
+            localStorage.setItem('GEMINI_API_KEY', val);
+            closeApiKeyModal();
+            alert('Credentials cached securely.');
+        }
+
+        function openApiKeyModal() {
+            document.getElementById('apiKeyModal').classList.remove('hidden');
+            document.getElementById('apiKeyInput').value = localStorage.getItem('GEMINI_API_KEY') || '';
+        }
+        function closeApiKeyModal() {
+            document.getElementById('apiKeyModal').classList.add('hidden');
+        }
+
+        // Active Theme Colors
+        const THEME_ACCENTS = {
+            LEGAL: '#CD7F32',      // WarmBronze
+            HEALTHCARE: '#00F0FF', // ElectricCyan
+            ACADEMIC: '#BD00FF',   // CosmicPurple
+            FINANCIAL: '#00FF87',  // BrightMint
+            GENERAL: '#FF007F'     // LaserPink
+        };
+
+        // Initialize Lucide Icons
+        window.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            loadHistory();
+        });
+
+        function switchScreen(screenId) {
+            document.getElementById('screenWelcome').classList.add('hidden');
+            document.getElementById('screenSimulating').classList.add('hidden');
+            document.getElementById('screenCompleted').classList.add('hidden');
+
+            document.getElementById(screenId).classList.remove('hidden');
+        }
+
+        // Fast Preset Switcher
+        function loadPreset(type) {
+            const doc = PRESETS[type];
+            if (!doc) return;
+            selectedNode = null;
+            document.getElementById('floatingPopout').classList.add('hidden');
+
+            // Trigger visual glow change
+            const accent = THEME_ACCENTS[type] || THEME_ACCENTS.GENERAL;
+            document.getElementById('ambientGlow').style.background = `radial-gradient(circle, ${accent}12 0%, rgba(3, 4, 7, 0) 70%)`;
+
+            runSimulation(doc, () => {
+                displayCompletedDocument(doc);
+                saveToHistory(doc);
+            });
+        }
+
+        // Cinematic simulation pipeline sequence
+        function runSimulation(doc, onComplete) {
+            switchScreen('screenSimulating');
+            const terminal = document.getElementById('terminalLog');
+            terminal.innerHTML = "";
+            document.getElementById('simTime').innerText = "COMPILATION METRIC: 0ms";
+
+            // Reset agent nodes UI
+            for (let idx = 0; idx < 5; idx++) {
+                const stepNode = document.getElementById(`agentNode-${idx}`);
+                if (stepNode) {
+                    const circle = stepNode.querySelector('div');
+                    circle.className = "w-7 h-7 rounded-full border border-obsidian-border bg-obsidian-main flex items-center justify-center text-[10px] text-gray-400 transition-all duration-300";
+                    circle.innerHTML = `${idx + 1}`;
+                }
+            }
+
+            const stepDurationMs = 800; // speeds up simulation
+            let stepIndex = 0;
+            let elapsedMs = 0;
+            let logsString = "UPLINK SUCCESSFUL. Initializing multi-agent reasoning cluster...\n\n";
+
+            function runAgentStep() {
+                if (stepIndex >= doc.agentSteps.length) {
+                    // Simulation finished
+                    setTimeout(() => {
+                        onComplete();
+                    }, 500);
+                    return;
+                }
+
+                const step = doc.agentSteps[stepIndex];
+                const accent = THEME_ACCENTS[doc.docType];
+
+                // Update steps nodes
+                const stepNode = document.getElementById(`agentNode-${stepIndex}`);
+                if (stepNode) {
+                    const circle = stepNode.querySelector('div');
+                    circle.classList.remove('border-obsidian-border', 'text-gray-400');
+                    circle.style.borderColor = accent;
+                    circle.style.backgroundColor = `${accent}33`;
+                    circle.style.color = '#FFFFFF';
+                }
+
+                // Append logs
+                logsString += `<span class="opacity-100" style="color: ${accent}">[${step.agentName}] STATUS: ACTIVE</span><br/>${step.logs}<br/>Duration: ${step.durationMs}ms<br/><br/>`;
+                terminal.innerHTML = logsString;
+                terminal.scrollTop = terminal.scrollHeight; // Auto Scroll
+
+                elapsedMs += step.durationMs;
+                document.getElementById('simTime').innerText = `COMPILATION METRIC: ${elapsedMs}ms`;
+
+                // Mark previous completed node with Checkmark
+                setTimeout(() => {
+                    if (stepNode) {
+                        const circle = stepNode.querySelector('div');
+                        circle.style.borderColor = "#22C55E";
+                        circle.style.backgroundColor = "transparent";
+                        circle.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5 text-green-500"></i>`;
+                        lucide.createIcons();
+                    }
+
+                    stepIndex++;
+                    runAgentStep();
+                }, stepDurationMs);
+            }
+
+            // Start step recursion
+            setTimeout(() => {
+                runAgentStep();
+            }, 300);
+        }
+
+        // Display results
+        function displayCompletedDocument(doc) {
+            currentDoc = doc;
+            switchScreen('screenCompleted');
+
+            // Set Title & details
+            document.getElementById('completedDocTitle').innerText = doc.title;
+            document.getElementById('badgeDocType').innerText = `COGNITIVE BOUNDING: ${doc.docType}`;
+            document.getElementById('completedDocConfidence').innerText = `CONFIDENCE: ${Math.round(doc.confidenceScore * 100)}%`;
+            
+            // Calculate Risk Index
+            let riskIndex = 12;
+            if (doc.risks.length === 1) riskIndex = 34;
+            else if (doc.risks.length === 2) riskIndex = 58;
+            else if (doc.risks.length >= 3) riskIndex = 74;
+            document.getElementById('riskIndexScore').innerText = riskIndex;
+
+            // Render OCR Scanned paragraphs
+            const pBlock = document.getElementById('ocrDisplayBlock');
+            pBlock.innerHTML = "";
+            const paragraphs = doc.fullOcrText.split("\n\n");
+            paragraphs.forEach(para => {
+                const isContra = doc.risks.some(risk => para.includes(risk.clauseText) || para.includes("Paragraph 18") || para.includes("SECTION 8") || para.includes("FIGURE 4"));
+                
+                const pDiv = document.createElement('div');
+                pDiv.className = `p-2 my-2 rounded-lg transition-all duration-300 ocr-para-box`;
+                pDiv.setAttribute('data-critical', isContra ? 'true' : 'false');
+                pDiv.innerText = para;
+                pBlock.appendChild(pDiv);
+            });
+
+            // Update UI Layers buttons
+            updateLayersVisuals();
+
+            // Render Knowledge Graph Nodes & SVG Lines
+            renderKnowledgeGraph(doc);
+
+            // Detailed Auditing logs
+            document.getElementById('completedExplanation').innerText = doc.explanation;
+
+            // Milestones timeline
+            const tTimeline = document.getElementById('completedTimeline');
+            tTimeline.innerHTML = "";
+            doc.timeline.forEach(item => {
+                const color = item.level === 'HIGH' ? '#EF4444' : item.level === 'MEDIUM' ? '#F59E0B' : '#3B82F6';
+                const div = document.createElement('div');
+                div.className = "flex gap-3 justify-between items-start text-[11px] p-2 bg-black/30 border border-obsidian-border rounded-xl";
+                div.innerHTML = `
+                    <div>
+                        <div class="font-bold text-white flex items-center gap-1.5">
+                            <span class="w-1.5 h-1.5 rounded-full" style="background-color: ${color}"></span>
+                            ${item.title}
+                        </div>
+                        <div class="text-[9px] text-gray-400 mt-0.5">${item.significance}</div>
+                    </div>
+                    <div class="font-mono text-gray-500 font-semibold">${item.date}</div>
+                `;
+                tTimeline.appendChild(div);
+            });
+
+            // Risks warnings anomalies
+            const rContainer = document.getElementById('completedRisks');
+            rContainer.innerHTML = "";
+            doc.risks.forEach(item => {
+                const borderAccent = item.severity === 'CRITICAL' ? 'border-red-500/30 bg-red-500/5' : 'border-amber-500/30 bg-amber-500/5';
+                const prefixColor = item.severity === 'CRITICAL' ? 'text-red-400' : 'text-amber-400';
+                
+                const div = document.createElement('div');
+                div.className = `p-4 rounded-2xl border ${borderAccent} text-xs leading-relaxed`;
+                div.innerHTML = `
+                    <div class="flex items-center gap-2 font-bold ${prefixColor} uppercase mb-1 tracking-wider text-[11px]">
+                        <span class="px-2 py-0.5 rounded bg-red-500/10 text-[9px] border border-red-500/20">${item.severity}</span>
+                        ${item.title}
+                    </div>
+                    <p class="text-gray-300 text-[11px] font-semibold font-sans mt-1">OFFENDING VALUE: <span class="font-mono bg-black/40 border border-obsidian-border px-1.5 py-0.5 rounded text-white">${item.clauseText}</span></p>
+                    <p class="text-gray-400 mt-2">${item.reasoning}</p>
+                    <div class="mt-3 p-2 bg-black/20 border border-obsidian-border rounded-lg text-[10px] text-gray-300 font-sans">
+                        <span class="font-bold tracking-widest text-green-400 mr-1 font-mono">ADVISORY RESOLUTION:</span> ${item.suggestion}
+                    </div>
+                `;
+                rContainer.appendChild(div);
+            });
+
+            lucide.createIcons();
+        }
+
+        function updateLayersVisuals() {
+            const accent = THEME_ACCENTS[currentDoc.docType];
+            
+            // Heatmap layers toggle styling
+            const btnHeatmap = document.getElementById('btnToggleHeatmap');
+            if (heatmapOn) {
+                btnHeatmap.style.borderColor = accent;
+                btnHeatmap.style.backgroundColor = `${accent}25`;
+                btnHeatmap.style.color = '#FFFFFF';
+            } else {
+                btnHeatmap.style.borderColor = 'transparent';
+                btnHeatmap.style.backgroundColor = 'transparent';
+                btnHeatmap.style.color = 'rgb(156, 163, 175)';
+            }
+
+            // Anomaly logic layers toggle styling
+            const btnRisks = document.getElementById('btnToggleRisks');
+            if (risksOn) {
+                btnRisks.style.borderColor = accent;
+                btnRisks.style.backgroundColor = `${accent}25`;
+                btnRisks.style.color = '#FFFFFF';
+            } else {
+                btnRisks.style.borderColor = 'transparent';
+                btnRisks.style.backgroundColor = 'transparent';
+                btnRisks.style.color = 'rgb(156, 163, 175)';
+            }
+
+            // Repaint smart-lens visual paras
+            document.querySelectorAll('.ocr-para-box').forEach(box => {
+                const isCritical = box.getAttribute('data-critical') === 'true';
+                
+                // Set default backings
+                box.style.backgroundColor = 'transparent';
+                box.style.borderWidth = '0px';
+
+                if (heatmapOn) {
+                    box.style.backgroundColor = `${accent}10`;
+                }
+                if (risksOn && isCritical) {
+                    box.style.backgroundColor = `rgba(255, 23, 70, 0.12)`;
+                    box.style.border = `1px solid rgba(255, 23, 70, 0.3)`;
+                }
+            });
+        }
+
+        function toggleHeatmap() {
+            heatmapOn = !heatmapOn;
+            updateLayersVisuals();
+        }
+
+        function toggleRisks() {
+            risksOn = !risksOn;
+            updateLayersVisuals();
+        }
+
+        // SVG Canvas Render Node edge lines
+        function renderKnowledgeGraph(doc) {
+            const svg = document.getElementById('svgEdges');
+            const hNodes = document.getElementById('htmlNodes');
+            svg.innerHTML = "";
+            hNodes.innerHTML = "";
+
+            const canvasW = svg.clientWidth || 600;
+            const canvasH = svg.clientHeight || 240;
+            const accent = THEME_ACCENTS[doc.docType];
+
+            // 1. Draw SVG Connecting Lines
+            doc.edges.forEach(edge => {
+                const fromNode = doc.nodes.find(n => n.id === edge.from);
+                const toNode = doc.nodes.find(n => n.id === edge.to);
+
+                if (fromNode && toNode) {
+                    const x1 = fromNode.x * canvasW;
+                    const y1 = fromNode.y * canvasH;
+                    const x2 = toNode.x * canvasW;
+                    const y2 = toNode.y * canvasH;
+
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('x1', x1);
+                    line.setAttribute('y1', y1);
+                    line.setAttribute('x2', x2);
+                    line.setAttribute('y2', y2);
+                    line.setAttribute('stroke', `${accent}55`);
+                    line.setAttribute('stroke-width', '1.5');
+                    line.setAttribute('stroke-dasharray', '5 4');
+                    svg.appendChild(line);
+                }
+            });
+
+            // 2. Plot Floating Node Buttons
+            doc.nodes.forEach(node => {
+                const nx = node.x * canvasW;
+                const ny = node.y * canvasH;
+                const isRisk = node.type === 'CONTRA_ELEMENT' || node.type === 'RISK_FLAG';
+                const nodeThemeColor = isRisk ? '#FF1744' : accent;
+
+                const nodeBtn = document.createElement('div');
+                nodeBtn.className = "absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer group flex flex-col items-center z-10 transition duration-200";
+                nodeBtn.style.left = `${nx}px`;
+                nodeBtn.style.top = `${ny}px`;
+                nodeBtn.onclick = () => selectNode(node);
+
+                nodeBtn.innerHTML = `
+                    <div class="relative flex items-center justify-center">
+                        <!-- Custom radar glow pulses -->
+                        <div class="absolute inset-0 w-8 h-8 rounded-full opacity-0 group-hover:opacity-20 animate-ping" style="background-color: ${nodeThemeColor}"></div>
+                        
+                        <!-- Core solid shape -->
+                        <div class="w-4.5 h-4.5 rounded-full flex items-center justify-center border-2 transition duration-200" style="background-color: #030407; border-color: ${nodeThemeColor}">
+                            <div class="w-1.5 h-1.5 rounded-full" style="background-color: ${nodeThemeColor}"></div>
+                        </div>
+                    </div>
+                    <span class="mt-1.5 px-2 py-0.5 whitespace-nowrap bg-[#040508]/90 border border-obsidian-border text-[9px] text-gray-200 group-hover:text-white rounded font-mono group-hover:scale-105 transition leading-none">${node.label}</span>
+                `;
+                hNodes.appendChild(nodeBtn);
+            });
+        }
+
+        function selectNode(node) {
+            selectedNode = node;
+            const popout = document.getElementById('floatingPopout');
+            if (!node) {
+                popout.classList.add('hidden');
+                return;
+            }
+
+            popout.classList.remove('hidden');
+            document.getElementById('popoutLabel').innerText = node.label;
+            document.getElementById('popoutType').innerText = `ENTITY: ${node.type}`;
+
+            // Sync visual spot glow color
+            const isRisk = node.type === 'CONTRA_ELEMENT' || node.type === 'RISK_FLAG';
+            const accent = isRisk ? '#FF1744' : THEME_ACCENTS[currentDoc.docType];
+            document.getElementById('popoutDot').style.backgroundColor = accent;
+        }
+
+        // Custom image upload simulator
+        function triggerFileInput() {
+            document.getElementById('fileInput').click();
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Generate clean mock result matching user image layout
+            const filename = file.name;
+            const customizedMock = {
+                title: `Analyzed Spec - ${filename}`,
+                docType: "GENERAL",
+                confidenceScore: 0.94,
+                summary: "UPLINK DEMO RESULTS. Successfully processed multi-agent analytics locally to avoid live environment latency.",
+                explanation: "The logical reasoning pipelines isolated the logical document elements within your custom image. Graph structures have been determined via structural canvas parsing.",
+                fullOcrText: `CUSTOM FILENAME RESOURCE: ${filename}\nINTELLIGENCE COUPLING COMPLETED.\n\nParagraph 1. COMPLIANCE ASSESSMENT:\nCore verification scans successfully extracted textual data from your image boundaries. No major critical contradictions were identified locally.`,
+                nodes: [
+                    { id: "uplink", label: "Uploaded Image File", type: "ORGANIZATION", x: 0.35, y: 0.5 },
+                    { id: "process", label: "Mmapped Text Matrix", type: "METRIC", x: 0.65, y: 0.5 }
+                ],
+                edges: [
+                    { from: "uplink", to: "process", relation: "PROCESSED_BY" }
+                ],
+                risks: [
+                    { severity: "INFO", title: "Local Sandbox Asset Uplink Initialised", clauseText: filename, reasoning: "Uploaded custom file scanned without secure server errors.", suggestion: "Add a custom GEMINI_API_KEY in user secrets to initiate live multi-agent logical reasoning pipelines." }
+                ],
+                timeline: [
+                    { date: "Current Hour", title: "Asset Stream Inbound", significance: "Custom media has been processed through the local client sandbox.", level: "LOW" }
+                ],
+                agentSteps: [
+                    { agentId: "OCRAgent", agentName: "Visual Document Reader", durationMs: 250, logs: "Extracted basic contours of incoming file. Content classified under general specs." },
+                    { agentId: "RiskAgent", agentName: "Compliance Logic Scanner", durationMs: 440, logs: "Analyzed local structures. Ready for live API calls." }
+                ]
+            };
+
+            // Loading screen simulation
+            runSimulation(customizedMock, () => {
+                displayCompletedDocument(customizedMock);
+                saveToHistory(customizedMock);
+            });
+        }
+
+        // DB / History State controller
+        function saveToHistory(doc) {
+            // Uniquely add
+            if (historyList.some(h => h.title === doc.title)) return;
+            historyList.unshift(doc);
+            if (historyList.length > 5) historyList.pop(); // Max 5 items
+            localStorage.setItem('DOC_AI_HISTORY', JSON.stringify(historyList));
+            loadHistory();
+        }
+
+        function loadHistory() {
+            const cached = localStorage.getItem('DOC_AI_HISTORY');
+            if (cached) {
+                historyList = JSON.parse(cached);
+            } else {
+                historyList = [];
+            }
+
+            const container = document.getElementById('historyList');
+            container.innerHTML = "";
+
+            if (historyList.length === 0) {
+                container.innerHTML = `<p class="text-[10px] font-mono text-gray-500 italic p-3 text-center border border-dashed border-obsidian-border rounded-xl">No historical records saved.</p>`;
+                return;
+            }
+
+            historyList.forEach((doc, idx) => {
+                const accent = THEME_ACCENTS[doc.docType];
+                const div = document.createElement('div');
+                div.className = "flex justify-between items-center p-3 bg-black/40 border border-obsidian-border hover:border-blue-500/30 rounded-xl transition duration-200 cursor-pointer";
+                div.innerHTML = `
+                    <div onclick="restoreHistoryDoc(${idx})" class="flex-grow">
+                        <div class="text-xs font-bold text-white uppercase">${doc.title}</div>
+                        <div class="text-[9px] font-mono tracking-widest uppercase mt-0.5" style="color: ${accent}">${doc.docType} Scan</div>
+                    </div>
+                    <button onclick="deleteHistoryDoc(${idx})" class="text-gray-500 hover:text-red-400 p-1">
+                        <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                    </button>
+                `;
+                container.appendChild(div);
+            });
+            lucide.createIcons();
+        }
+
+        function restoreHistoryDoc(index) {
+            const doc = historyList[index];
+            if (doc) {
+                displayCompletedDocument(doc);
+            }
+        }
+
+        function deleteHistoryDoc(index) {
+            historyList.splice(index, 1);
+            localStorage.setItem('DOC_AI_HISTORY', JSON.stringify(historyList));
+            loadHistory();
+        }
+
+        function clearHistory() {
+            historyList = [];
+            localStorage.removeItem('DOC_AI_HISTORY');
+            loadHistory();
+        }
+    </script>
+</body>
+</html>
